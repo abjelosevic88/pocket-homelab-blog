@@ -156,13 +156,11 @@ func (s *Server) hostSwitch(next http.Handler) http.Handler {
 			http.NotFound(w, r)
 			return
 		}
+		// any other name (host.docker.internal for Pocket Core and the apps
+		// acting through it, a LAN name) is the app itself
 		b, err := s.store.BlogByDomain(r.Context(), host)
 		if err != nil {
-			if baseHost == "" {
-				next.ServeHTTP(w, r)
-				return
-			}
-			http.NotFound(w, r)
+			next.ServeHTTP(w, r)
 			return
 		}
 		switch p := r.URL.Path; {

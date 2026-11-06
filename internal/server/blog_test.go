@@ -396,8 +396,11 @@ func TestOwnDomainAndPublicHost(t *testing.T) {
 	if code, _ := get("read.test", "/api/v1/auth/status"); code != 404 {
 		t.Fatalf("public host serves the API: %d", code)
 	}
-	if code, _ := get("other.example", "/b/mine/hello"); code != 404 {
-		t.Fatalf("unknown host → %d", code)
+	// Pocket Core and the apps acting through it call in as host.docker.internal:<port>
+	for _, path := range []string{"/healthz", "/api/v1/auth/status", "/b/mine/hello"} {
+		if code, _ := get("host.docker.internal:8246", path); code != 200 {
+			t.Fatalf("host.docker.internal %s → %d", path, code)
+		}
 	}
 }
 
