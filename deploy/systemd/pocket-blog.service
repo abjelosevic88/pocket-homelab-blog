@@ -1,0 +1,23 @@
+[Unit]
+Description=Pocket Blog — your own blog on your own server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=pocket-blog
+Group=pocket-blog
+ExecStart=/usr/local/bin/pocket-blog
+Environment=DATA_DIR=/var/lib/pocket-blog
+Environment=PORT=8080
+Environment=BASE_URL=https://blog.example.com
+Environment=SECURE_COOKIES=true
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/pocket-blog
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

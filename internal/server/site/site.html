@@ -1,0 +1,146 @@
+{{define "page"}}<!doctype html>
+<html lang="{{.Lang}}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>{{.Title}}</title>
+{{if .Description}}<meta name="description" content="{{.Description}}">{{end}}
+{{if .NoIndex}}<meta name="robots" content="noindex">{{end}}
+<link rel="canonical" href="{{.Canonical}}">
+<link rel="alternate" type="application/rss+xml" title="{{.Blog.Title}}" href="{{.Base}}/feed.xml">
+<meta property="og:site_name" content="{{.Blog.Title}}">
+<meta property="og:title" content="{{if .Post}}{{.Post.Title}}{{else}}{{.Title}}{{end}}">
+{{if .Description}}<meta property="og:description" content="{{.Description}}">{{end}}
+<meta property="og:type" content="{{if eq .Kind "post"}}article{{else}}website{{end}}">
+<meta property="og:url" content="{{.Canonical}}">
+{{if .Image}}<meta property="og:image" content="{{.Image}}"><meta name="twitter:card" content="summary_large_image">{{end}}
+{{if and .Post (eq .Kind "post")}}<meta property="article:published_time" content="{{.Post.ISODate}}">{{end}}
+<meta name="color-scheme" content="light dark">
+<meta name="generator" content="Pocket Blog">
+<link rel="stylesheet" href="/_blog/site.css?v={{.Version}}">
+{{if .Avatar}}<link rel="icon" href="{{.Avatar}}">{{end}}
+</head>
+<body class="t-{{.Blog.Theme}} f-{{.Blog.Font}} k-{{.Kind}}" style="--accent: {{safeCSS .Blog.Accent}}">
+{{if .Preview}}<div class="preview-bar">{{.W.preview}}</div>{{end}}
+<a class="skip" href="#main">↓</a>
+<header class="site-head">
+  <div class="wrap head-row">
+    <a class="brand" href="{{.Base}}/">
+      {{if .Avatar}}<img class="brand-avatar" src="{{.Avatar}}" alt="">{{else}}<span class="brand-mark">{{initial .Blog.Title}}</span>{{end}}
+      <span class="brand-text"><span class="brand-title">{{.Blog.Title}}</span>{{if .Blog.Tagline}}<span class="brand-tagline">{{.Blog.Tagline}}</span>{{end}}</span>
+    </a>
+    <form class="head-search" action="{{.Base}}/search" method="get" role="search">
+      <input type="search" name="q" value="{{.Query}}" placeholder="{{.W.search_ph}}" aria-label="{{.W.search}}">
+    </form>
+  </div>
+  {{if gt (len .Menu) 1}}<nav class="wrap site-nav" aria-label="Menu">{{range .Menu}}<a href="{{.URL}}"{{if .Active}} class="on" aria-current="page"{{end}}>{{.Label}}</a>{{end}}</nav>{{end}}
+</header>
+
+<main id="main" class="wrap main">
+{{if eq .Kind "home"}}
+  {{if .Hero}}{{template "hero" (args $ .Hero)}}{{end}}
+  {{if .Posts}}{{template "list" $}}{{else if not .Hero}}<p class="empty">{{.W.nothing}}</p>{{end}}
+  {{template "pager" $}}
+  {{if .AboutHTML}}<section class="about">{{if .Avatar}}<img class="about-avatar" src="{{.Avatar}}" alt="">{{end}}<div class="about-text prose">{{.AboutHTML}}</div></section>{{end}}
+{{else if eq .Kind "tag"}}
+  <h1 class="page-title">{{.W.tagged}} <span class="tag-name">#{{.Tag}}</span></h1>
+  {{template "list" $}}
+{{else if eq .Kind "search"}}
+  <h1 class="page-title">{{if .Query}}{{.W.results}} “{{.Query}}”{{else}}{{.W.search}}{{end}}</h1>
+  <form class="big-search" action="{{.Base}}/search" method="get"><input type="search" name="q" value="{{.Query}}" placeholder="{{.W.search_ph}}" autofocus><button>{{.W.search}}</button></form>
+  {{if .Query}}{{if .Posts}}{{template "list" $}}{{else}}<p class="empty">{{.W.no_results}}</p>{{end}}{{end}}
+{{else if eq .Kind "archive"}}
+  <h1 class="page-title">{{.W.archive}}</h1>
+  {{range .Years}}<section class="year"><h2>{{.Year}}</h2><ul class="archive">{{range .Posts}}<li><a href="{{.URL}}"><span class="a-title">{{.Title}}</span><time datetime="{{.ISODate}}">{{.Date}}</time></a></li>{{end}}</ul></section>{{else}}<p class="empty">{{.W.nothing}}</p>{{end}}
+{{else if or (eq .Kind "post") (eq .Kind "page")}}
+  {{with .Post}}
+  <article class="article">
+    <header class="article-head">
+      {{if and (eq $.Kind "post") .Tags}}<div class="article-tags">{{range .Tags}}<a href="{{$.Base}}/tag/{{.}}">#{{.}}</a>{{end}}</div>{{end}}
+      <h1 class="article-title">{{.Title}}</h1>
+      {{if eq $.Kind "post"}}<div class="meta">{{if $.Blog.AuthorName}}<span>{{$.Blog.AuthorName}}</span><span class="dot">·</span>{{end}}<time datetime="{{.ISODate}}">{{.Date}}</time>{{if $.Reading}}<span class="dot">·</span><span>{{.Minutes}} {{$.W.min_read}}</span>{{end}}</div>{{end}}
+    </header>
+    {{if .Cover}}<figure class="article-cover"><img src="{{.Cover}}" alt="{{.CoverAlt}}"></figure>{{end}}
+    <div class="prose">{{.HTML}}</div>
+  </article>
+  {{end}}
+  {{if eq .Kind "post"}}
+    {{if or .Blog.AuthorName .Blog.AuthorBio}}<aside class="author-box">{{if .Avatar}}<img src="{{.Avatar}}" alt="">{{else}}<span class="brand-mark">{{initial .Blog.AuthorName}}</span>{{end}}<div><div class="author-label">{{.W.written_by}}</div><div class="author-name">{{.Blog.AuthorName}}</div>{{if .Blog.AuthorBio}}<p>{{.Blog.AuthorBio}}</p>{{end}}</div></aside>{{end}}
+    {{if or .Prev .Next}}<nav class="neighbours">{{with .Prev}}<a class="prev" href="{{.URL}}"><span>← {{$.W.previous}}</span>{{.Title}}</a>{{else}}<span></span>{{end}}{{with .Next}}<a class="next" href="{{.URL}}"><span>{{$.W.next}} →</span>{{.Title}}</a>{{end}}</nav>{{end}}
+    {{template "comments" $}}
+  {{end}}
+{{else if eq .Kind "private"}}
+  <div class="notfound"><h1>🔒</h1><p>{{.W.private}}</p></div>
+{{else}}
+  <div class="notfound"><h1>404</h1><p>{{.W.not_found}}</p><p><a class="button" href="{{.Base}}/">{{.W.back_home}}</a></p></div>
+{{end}}
+</main>
+
+<footer class="site-foot">
+  <div class="wrap foot-row">
+    {{if .FooterHTML}}<div class="foot-text">{{.FooterHTML}}</div>{{else}}<div class="foot-text">© {{.Year}} {{.Blog.Title}}</div>{{end}}
+    <nav class="foot-links">
+      {{range .Socials}}<a href="{{.URL}}" rel="me noopener">{{.Label}}</a>{{end}}
+      <a href="{{.Base}}/archive">{{.W.archive}}</a>
+      <a href="{{.Base}}/feed.xml">{{.W.rss}}</a>
+    </nav>
+  </div>
+  {{if .ShowMade}}<div class="wrap made">{{.W.made_with}}</div>{{end}}
+</footer>
+</body>
+</html>{{end}}
+
+{{define "hero"}}{{$p := index . 1}}{{$ := index . 0}}
+<a class="hero{{if not $p.Cover}} no-cover{{end}}" href="{{$p.URL}}">
+  {{if $p.Cover}}<img src="{{$p.Cover}}" alt="{{$p.CoverAlt}}">{{end}}
+  <div class="hero-text">
+    {{if $p.Tags}}<div class="card-tag">#{{index $p.Tags 0}}</div>{{end}}
+    <h2>{{$p.Title}}</h2>
+    {{if $p.Excerpt}}<p>{{$p.Excerpt}}</p>{{end}}
+    <div class="meta"><time datetime="{{$p.ISODate}}">{{$p.Date}}</time>{{if $.Reading}}<span class="dot">·</span>{{$p.Minutes}} {{$.W.min_read}}{{end}}</div>
+  </div>
+</a>{{end}}
+
+{{define "list"}}
+<div class="list">
+{{range .Posts}}
+  <article class="entry{{if .Featured}} featured{{end}}{{if not .Cover}} no-cover{{end}}">
+    {{if .Cover}}<a class="entry-cover" href="{{.URL}}" tabindex="-1" aria-hidden="true"><img src="{{.Cover}}" alt="{{.CoverAlt}}" loading="lazy"></a>{{end}}
+    <div class="entry-body">
+      <div class="meta"><time datetime="{{.ISODate}}">{{.Date}}</time>{{if and $.Reading (eq .Kind "post")}}<span class="dot">·</span><span>{{.Minutes}} {{$.W.min_read}}</span>{{end}}{{if .Comments}}<span class="dot">·</span><span>💬 {{.Comments}}</span>{{end}}</div>
+      <h2 class="entry-title"><a href="{{.URL}}">{{.Title}}</a></h2>
+      {{if .Excerpt}}<p class="entry-excerpt">{{.Excerpt}}</p>{{end}}
+      {{if .Tags}}<div class="entry-tags">{{range .Tags}}<a href="{{$.Base}}/tag/{{.}}">#{{.}}</a>{{end}}</div>{{end}}
+    </div>
+  </article>
+{{end}}
+</div>{{end}}
+
+{{define "pager"}}{{if or .OlderURL .NewerURL}}<nav class="pager">{{if .NewerURL}}<a class="button ghost" href="{{.NewerURL}}">← {{.W.newer}}</a>{{else}}<span></span>{{end}}{{if .OlderURL}}<a class="button ghost" href="{{.OlderURL}}">{{.W.older}} →</a>{{end}}</nav>{{end}}{{end}}
+
+{{define "comments"}}
+<section class="comments" id="comments">
+  <h2>{{.W.comments}}{{if .CommentsN}} <span class="count">{{.CommentsN}}</span>{{end}}</h2>
+  {{if .Notice}}<p class="notice{{if .NoticeBad}} bad{{end}}" role="status">{{.Notice}}</p>{{end}}
+  {{range .Comments}}{{template "comment" (args $ .)}}{{else}}{{if .CanComment}}<p class="muted">{{.W.no_comments}}</p>{{end}}{{end}}
+  {{if .CanComment}}
+  <form class="comment-form" id="comment-form" method="post" action="{{.Post.URL}}/comments">
+    <h3>{{.W.write_comment}}</h3>
+    <div class="row2">
+      <label><span>{{.W.name}}</span><input name="name" required maxlength="80" autocomplete="name"></label>
+      <label><span>{{.W.email}}</span><input name="email" type="email" maxlength="200" autocomplete="email"></label>
+    </div>
+    <label><span>{{.W.comment}}</span><textarea name="body" required rows="5" maxlength="5000"></textarea></label>
+    <label class="hp" aria-hidden="true">Website <input name="website" tabindex="-1" autocomplete="off"></label>
+    <input type="hidden" name="stamp" value="{{.FormStamp}}">
+    <button class="button" type="submit">{{.W.send}}</button>
+  </form>
+  {{else if .Comments}}{{else if and .Post (not .Preview)}}<p class="muted">{{.W.closed}}</p>{{end}}
+</section>{{end}}
+
+{{define "comment"}}{{$ := index . 0}}{{$c := index . 1}}
+<div class="comment{{if $c.ByAuthor}} by-author{{end}}" id="c{{$c.ID}}">
+  <div class="c-head"><span class="c-avatar">{{initial $c.Name}}</span><b>{{$c.Name}}</b>{{if $c.ByAuthor}}<span class="badge">{{$.W.reply_author}}</span>{{end}}<span class="c-date">{{$c.Date}}</span></div>
+  <div class="c-body">{{range $c.Body}}<p>{{.}}</p>{{end}}</div>
+  {{range $c.Replies}}<div class="replies">{{template "comment" (args $ .)}}</div>{{end}}
+</div>{{end}}

@@ -1,0 +1,17 @@
+# Pocket Blog behind Caddy.
+blog.example.com {
+	request_body {
+		max_size 30MB
+	}
+	reverse_proxy pocket-blog:8080
+}
+
+# Optional: a public hostname that serves only the blogs (set PUBLIC_URL=https://read.example.com).
+# read.example.com {
+# 	reverse_proxy pocket-blog:8080
+# }
+
+# Optional: a blog's own web address (type it under Look & details → Your own web address).
+# myblog.com, www.myblog.com {
+# 	reverse_proxy pocket-blog:8080
+# }
