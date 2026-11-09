@@ -18,7 +18,7 @@ import (
 
 var linkOffers = []core.Offer{
 	{Scope: "blog:read", Name: "See your blog", Description: "Read your blogs and posts (drafts too), the comments readers wrote and how many people read each post — for your journal, dashboards, search and Pocket AI."},
-	{Scope: "blog:write", Name: "Write drafts on your blog", Description: "Start a post as a draft for you to finish (\"turn this into a blog post\"), and publish it when you ask. It may change only the posts that app started itself."},
+	{Scope: "blog:write", Name: "Write drafts on your blog", Description: "Start a post as a draft for you to finish (\"turn this into a blog post\", a picture from Pocket Photo Lab), with its pictures, and publish it when you ask. It may change only the posts that app started itself."},
 }
 
 type linkRoute struct {
@@ -32,6 +32,7 @@ var linkRoutes = []linkRoute{
 	{"GET", regexp.MustCompile(`^/api/v1/(blogs|posts|summary|search|tags|comments|stats|day/\d{4}-\d{2}-\d{2})$`), "blog:read"},
 	{"GET", regexp.MustCompile(`^/api/v1/(blogs|posts)/\d+$`), "blog:read"},
 	{"POST", regexp.MustCompile(`^/api/v1/posts$`), "blog:write"},
+	{"POST", regexp.MustCompile(`^/api/v1/media$`), "blog:write"},
 	{"PUT", regexp.MustCompile(`^/api/v1/posts/\d+$`), "blog:write"},
 	{"POST", regexp.MustCompile(`^/api/v1/posts/\d+/(publish|unpublish)$`), "blog:write"},
 }
