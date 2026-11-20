@@ -329,6 +329,11 @@ func (s *Server) handleImport(w http.ResponseWriter, r *http.Request) {
 		}
 		writeJSON(w, http.StatusOK, out)
 	case strings.HasSuffix(lower, ".zip") || bytes.HasPrefix(data, []byte("PK\x03\x04")):
+		// a Pocket Blog Markdown export brings its own blogs: no blog needed first
+		if out, ok := s.importPocketZip(ctx, uid, data); ok {
+			writeJSON(w, http.StatusOK, out)
+			return
+		}
 		b, err := s.importTarget(ctx, uid, blogID)
 		if err != nil {
 			writeErr(w, http.StatusBadRequest, "make a blog first, then bring the posts into it")
@@ -607,20 +612,8 @@ func (s *Server) importMarkdownZip(ctx context.Context, uid int64, b *store.Blog
 	if err != nil {
 		return nil, fmt.Errorf("that ZIP file cannot be opened")
 	}
-	// a Pocket Blog Markdown export carries export.json: that is the whole thing
-	for _, f := range zr.File {
-		if f.Name == "export.json" {
-			rc, err := f.Open()
-			if err == nil {
-				var doc exportDoc
-				err = json.NewDecoder(rc).Decode(&doc)
-				rc.Close()
-				if err == nil && doc.App == "pocket-blog" {
-					s.restoreMedia(ctx, uid, zr, doc.Media)
-					return s.importPocket(ctx, uid, doc), nil
-				}
-			}
-		}
+	if out, ok := s.importPocketZip(ctx, uid, data); ok {
+		return out, nil
 	}
 	files := map[string]*zip.File{}
 	for _, f := range zr.File {
@@ -673,8 +666,38 @@ func (s *Server) importMarkdownZip(ctx context.Context, uid int64, b *store.Blog
 	return counts, nil
 }
 
+// importPocketZip takes a Pocket Blog Markdown export: its export.json is the
+// whole thing, the pictures come from media/. ok is false for any other ZIP.
+func (s *Server) importPocketZip(ctx context.Context, uid int64, data []byte) (map[string]int, bool) {
+	zr, err := zip.NewReader(bytes.NewReader(data), int64(len(data)))
+	if err != nil {
+		return nil, false
+	}
+	for _, f := range zr.File {
+		if f.Name != "export.json" {
+			continue
+		}
+		rc, err := f.Open()
+		if err != nil {
+			return nil, false
+		}
+		var doc exportDoc
+		err = json.NewDecoder(rc).Decode(&doc)
+		rc.Close()
+		if err != nil || doc.App != "pocket-blog" {
+			return nil, false
+		}
+		pictures := s.restoreMedia(ctx, uid, zr, doc.Media)
+		out := s.importPocket(ctx, uid, doc)
+		out["pictures"] = pictures
+		return out, true
+	}
+	return nil, false
+}
+
 // restoreMedia brings back the pictures of a Pocket Blog export with their names.
-func (s *Server) restoreMedia(ctx context.Context, uid int64, zr *zip.Reader, ms []store.Media) {
+func (s *Server) restoreMedia(ctx context.Context, uid int64, zr *zip.Reader, ms []store.Media) int {
+	n := 0
 	byName := map[string]*zip.File{}
 	for _, f := range zr.File {
 		byName[f.Name] = f
@@ -700,8 +723,11 @@ func (s *Server) restoreMedia(ctx context.Context, uid int64, zr *zip.Reader, ms
 			continue
 		}
 		m.ID = 0
-		_ = s.store.AddMedia(ctx, uid, &m)
+		if s.store.AddMedia(ctx, uid, &m) == nil {
+			n++
+		}
 	}
+	return n
 }
 
 // importMarkdownFile adds one Markdown file (with or without front matter) as a post.

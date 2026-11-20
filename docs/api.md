@@ -52,7 +52,9 @@ JSON over HTTP at `/api/v1`. Authenticate with a session cookie (the web app), a
 
 ## Data
 
-`GET /export.json`, `GET /export/markdown.zip`, `GET /export/site.zip?blog=` (a static website), `POST /import` (multipart `file`: Pocket Blog JSON or ZIP, WordPress `.xml`, `.md`, `.zip` of Markdown), `GET /backup` (admins).
+`GET /export.json`, `GET /export/markdown.zip`, `GET /export/site.zip?blog=` (a static website), `POST /import` (multipart `file`: Pocket Blog JSON or ZIP, WordPress `.xml`, `.md`, `.zip` of Markdown), `GET /backup` (admins). A Pocket Blog ZIP brings its own blogs (no blog needed first); imports only add, and a second run of the same file adds nothing.
+
+`GET /pocket/portable`: Pocket Move can copy your blogs out (`move:export`: the Markdown ZIP, the JSON, the website) and bring them in (`move:import`: `POST /import`).
 
 ## Public
 

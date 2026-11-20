@@ -21,6 +21,22 @@ var linkOffers = []core.Offer{
 	{Scope: "blog:write", Name: "Write drafts on your blog", Description: "Start a post as a draft for you to finish (\"turn this into a blog post\", a picture from Pocket Photo Lab), with its pictures, and publish it when you ask. It may change only the posts that app started itself."},
 }
 
+// portable is what Pocket Move may copy out and bring in for a person
+// (docs/move.md in pocket-homelab-core); Register adds move:export/import.
+var portable = &core.Portable{
+	Exports: []core.PortableExport{
+		{Path: "/api/v1/export/markdown.zip", File: "blog.zip", Kind: core.KindPocket, Title: "Every blog, post and page as a Markdown file with its pictures, plus the comments (export.json inside brings it all back)"},
+		{Path: "/api/v1/export.json", File: "blog.json", Kind: core.KindJSON, Title: "Your blogs, posts, comments and picture details as JSON (no picture files)"},
+		{Path: "/api/v1/export/site.zip", File: "blog-website.zip", Kind: core.KindZip, Title: "Your first blog as plain web pages for any web host"},
+	},
+	Imports: []core.PortableImport{
+		{Path: "/api/v1/import", Kind: core.KindPocket, Form: "file", MaxBytes: 256 << 20, Title: "Adds the blogs, posts, pictures and comments from another box; what you already have is left alone"},
+		{Path: "/api/v1/import", Kind: core.KindMarkdownZip, Form: "file", MaxBytes: 256 << 20, Title: "Adds Markdown files as drafts or posts on your first blog, with their pictures"},
+		{Path: "/api/v1/import", Kind: core.KindMarkdown, Form: "file", MaxBytes: 256 << 20, Title: "Adds one Markdown file as a post on your first blog"},
+		{Path: "/api/v1/import", Kind: "wordpress-xml", Form: "file", MaxBytes: 256 << 20, Title: "Adds the posts, pages and comments of a WordPress export to your first blog"},
+	},
+}
+
 type linkRoute struct {
 	methods string
 	path    *regexp.Regexp
@@ -41,6 +57,9 @@ var errLinkScope = errors.New("outside the link's scope")
 
 // linkAllows reports whether a link token with these scopes may make this request.
 func linkAllows(scopes []string, r *http.Request) bool {
+	if portable.LinkAllows(scopes, r) {
+		return true
+	}
 	for _, lr := range linkRoutes {
 		if !strings.Contains(" "+lr.methods+" ", " "+r.Method+" ") || !lr.path.MatchString(r.URL.Path) {
 			continue
